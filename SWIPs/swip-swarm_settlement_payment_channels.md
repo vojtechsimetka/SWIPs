@@ -13,7 +13,7 @@ created: 2019-07-22
 
 ## Simple Summary
 <!--"If you can't explain it simply, you don't understand it well enough." Provide a simplified and layman-accessible explanation of the SWIP.-->
-Decouple the accounting of data done by SWAP from the actual payment, allowing payments to be performed by using either SWAP cheques and the SWAP smart contract or by using payment channel networks.
+In the current Swarm design, accounting of the data exchanged between peers and the payment for such data is coupled. To promote widespread adoption of Swarm it is best to abstract the actual payment mechanism and let the nodes participating in the network to decide what payment system better adapts to their needs.
 
 ## Abstract
 <!--A short (~200 word) description of the technical issue being addressed.-->
@@ -21,14 +21,14 @@ Decouple the accounting of data done by SWAP from the actual payment, allowing p
 
 ## Motivation
 <!--The motivation is critical for SWIPs that want to change the Swarm protocol. It should clearly explain why the existing protocol specification is inadequate to address the problem that the SWIP solves. SWIP submissions without sufficient motivation may be rejected outright.-->
-Nodes consuming and providing services in the Swarm network may benefit of settling their debts by using payment networks they might already be participating in. Allowing payments for storage to be done through payment channels may be attractive for new storage providers, this way storage providers can bootstrap its participation in the payment network by providing storage services in Swarm with zero cost of entry. 
+Nodes consuming and providing services in the Swarm network may benefit of settling their debts using different payment systems they might already be participating in, like payment channel networks (e.g. Lumino, Raiden or Lightning network). Storage providers offering other paid services will find appealing not to be forced to support multiple payment systems, but being able to consolidate the payments they receive using a single technology. As a side effect, new nodes can bootstrap its participation in a payment channel network by providing storage services in Swarm with zero cost of entry, as described in Generalised Swap Swear and Swindle games, 2019, Tron and Fischer. 
 
-Defining and implementing the required APIs to achieve this decoupling enables Swarm to interoperate accross Blockchains without being tied to a specific Blockchain or settlement technology.
+Defining and implementing the required APIs to achieve this decoupling enables Swarm to interoperate accross Blockchains without being tied to a specific Blockchain or settlement technology. Additionally, it enable multicurrency support for users to pay for the storage they consume.
 
 ## Specification
 <!--The technical specification should describe the syntax and semantics of any new feature. The specification should be detailed enough to allow competing, interoperable implementations for the current Swarm platform and future client implementations.-->
 
-In Swarm there is an abstraction for the accounting, the Balance interface defined in protocols.Balance:
+In Swarm there is an abstraction for the accounting, the ```Balance``` interface defined in protocols.Balance:
 
 ```golang
 // Balance is the actual accounting instance
@@ -79,15 +79,11 @@ Furthermore, nodes could support a combination of payment methods, expressing th
 ## Rationale
 <!--The rationale fleshes out the specification by describing what motivated the design and why particular design decisions were made. It should describe alternate designs that were considered and related work, e.g. how the feature is supported in other languages. The rationale may also provide evidence of consensus within the community, and should discuss important objections or concerns raised during discussion.-->
 
-The current Swap implementation uses Ether to settle debts and requires interaction with the SWAP chequebook smart contract contract. The settlement process is tightly coupled with the Swarm node, making hard to support other settlement methods such as payment channels. Moreover, this coupling tights Swarm to Ethereum-like Blockchains. Several options were considered to decouple the Swarm from the payments technology:
+The current Swap implementation uses Ether to settle debts and requires interactions with the SWAP chequebook smart contract. The settlement process is tightly coupled with the Swarm node, making hard to support other currencies besides Ether or other settlement methods such as payment channels. Moreover, this coupling tights Swarm to Ethereum-like Blockchains. Several options were considered to decouple the payments technology to use from Swarm:
 
-The options considered to implement this feature were:
-* Pay with ERC20 tokens: this requires to provide support to handle ERC20 tokens in the SWAP chequebook smart contract. It seems feasible to follow this path but it introduces unwanted complexity to the SWAP chequebook.
-* Pay using a payment channel: this requires an additional level of abstraction for the cheques and the chequebook. The idea is for the SWAP smart contract to be able to directly interact with the layer 2 payment network smart contracts. In this case a SWARM node should be able to generate Offchain Balance Proof to use them as cheques, which in turn could be converted to Onchain Balance proof and be submitted to the Lumino / Raiden TokenNetwork smart contract. The SWAP smart contract would be responsible for calling one of the settle methods of the TokenNetwork smart contract.
-* Replace SWAP by a Payment Network: this option is the least flexible of all and it could hurt the SWARM network, forcing the appearance of multiple subnetworks, each one handling its own payment mechanism.
-
-Pay with Ether: this is the current implementation of the SWAP chequebook.
-
+* Introduce ERC20 support directly into the SWAP chequebook smart contract: It seems feasible to follow this path, however for each new token to be supported a new chequebook needs to be deployed or multiple tokens support needs to be introduced to the chequebook. While this is possible, it might introduce unwanted complexity to the SWAP chequebook.
+* Introduce support for payment channels directly into the SWAP chequebook smart contract: This idea requires an additional level of abstraction for the cheques and the chequebook. The SWAP smart contract should be modified to directly interact with different on-chain payment mechanisms. In the case of payment channel networks cheques should be generalized to allow modeling Balance Proof. The interaction between the chequebook and the payment channel network will occur during the on-chain settlement, when the SWAP smart contract should send the Balance Proof to the payement channel smart contract(s) being use. As with the previous approach, this requires several changes to the SWAP chequebook smart contract. For every payment system to be supported a different chequebook should be designed. Having a single chequebook to handle multiple payment systems will result in an smart contract too difficult to maintain and keep secure.
+* Completely replace SWAP by a different payment mechanism: this option is the least flexible of all since it does not solve the problem at all, it only changes the coupling with a given technology (SWAP) for another. Additionally it could hurt the Swarm network, forcing the appearance of multiple subnetworks, each one handling its own payment mechanism, a situation that still could happen with the current Swarm design.
 
 ## Backwards Compatibility
 <!--All SWIPs that introduce backwards incompatibilities must include a section describing these incompatibilities and their severity. The SWIP must explain how the author proposes to deal with these incompatibilities. SWIP submissions without a sufficient backwards compatibility treatise may be rejected outright.-->
@@ -95,11 +91,13 @@ All SWIPs that introduce backwards incompatibilities must include a section desc
 
 ## Test Cases
 <!--Test cases for an implementation are mandatory for SWIPs that are affecting changes to data and message formats. Other SWIPs can choose to include links to test cases if applicable.-->
-Test cases for an implementation are mandatory for SWIPs that are affecting changes to data and message formats. Other SWIPs can choose to include links to test cases if applicable.
+
+No test cases for this SWIP are provided at this moment.
 
 ## Implementation
 <!--The implementations must be completed before any SWIP is given status "Final", but it need not be completed before the SWIP is accepted. While there is merit to the approach of reaching consensus on the specification and rationale before writing code, the principle of "rough consensus and running code" is still useful when it comes to resolving many discussions of API details.-->
-The implementations must be completed before any SWIP is given status "Final", but it need not be completed before the SWIP is accepted. While there is merit to the approach of reaching consensus on the specification and rationale before writing code, the principle of "rough consensus and running code" is still useful when it comes to resolving many discussions of API details.
+
+No implementation for this SWIP is provided at this moment.
 
 ## Copyright
 Copyright and related rights waived via [CC0](https://creativecommons.org/publicdomain/zero/1.0/).
