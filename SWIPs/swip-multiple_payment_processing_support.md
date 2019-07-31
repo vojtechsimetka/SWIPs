@@ -1,6 +1,6 @@
 ---
 SWIP: <to be assigned>
-title: Introduce support for multiple payment processing options in Swarm
+title: Swarm settlement using layer 2 payment networks
 author: Diego Masini (@diegomasini)
 discussions-to: <URL>
 status: Draft
@@ -17,7 +17,7 @@ In the current Swarm design, accounting of the data exchanged between peers and 
 
 ## Abstract
 <!--A short (~200 word) description of the technical issue being addressed.-->
-Defining abstractions for payment processing will make easier to integrate different payment methods into Swarm. These abstractions should specify the minimum requirements to allow different implementations to be supported by Swarm, thus decoupling the distributed storage service from the actual payment system used by participants to pay for it. Additionally, a new component needs to be included to keep track of the payment methods available for each peer a node is exchanging data with. The payment method or methods to use should be negotiated when stablishing the connection with such peers. Incorporating this abstractions requires modifications in the handshake protocol, the message handling, and the accounting and payment strategies implemented at the moment.
+
 
 ## Motivation
 <!--The motivation is critical for SWIPs that want to change the Swarm protocol. It should clearly explain why the existing protocol specification is inadequate to address the problem that the SWIP solves. SWIP submissions without sufficient motivation may be rejected outright.-->
@@ -28,7 +28,7 @@ Defining and implementing the required APIs to achieve this decoupling enables S
 ## Specification
 <!--The technical specification should describe the syntax and semantics of any new feature. The specification should be detailed enough to allow competing, interoperable implementations for the current Swarm platform and future client implementations.-->
 
-Swarm defines the ```Balance``` interface  in p2p/protocols/accounting.go as an abstraction for the accounting:
+In Swarm there is an abstraction for the accounting, the ```Balance``` interface defined in p2p/protocols/accounting.go:
 
 ```golang
 // Balance is the actual accounting instance
@@ -64,7 +64,7 @@ Which is handled by the devp2p Peer defined for the Swap protocol in swap/peer.g
 func (sp *Peer) handleEmitChequeMsg(ctx context.Context, msg interface{}) error 
 ```
 
-This function performs accounting and payment tasks which are tightly coupled to Swap, making it difficult to support different settlement strategies. 
+This function is tightly coupled with Swap, which makes difficult to support different settlement strategies. 
 
 The ```handleMsg``` function defined in swap/peer.go should delegate the processing of ```EmitChequeMsg``` to a service (from now on ```SwarmPayments```) provinding access to implementations of the Payments API (from now on ```PaymentProcessor```), thus decoupling Swarm from payments processing. The existing code for ```handleEmitChequeMsg``` will become part of the ```PaymentProcessor``` SWAP implementation. The ```handleMsg``` function could be redefined as:
 
@@ -87,7 +87,7 @@ func (sp *Peer) handleMsg(ctx context.Context, msg interface{}) error {
 
 where the ```sp.payments``` member of the ```Peer``` struct holds the ```SwarmPayments``` service. This service is responsible to hold the particular ```PaymentProcessor``` implementations available to the node and a mapping between peer (beneficiary) addressess and the ```PaymentProcessor``` negotiated during the handshake. 
 
-The ```Cheque```and ```ChequeParams``` defined in swap/types.go should be more general to allow implementors of the payments API to generate the required data structures for the specific payments implementation (e.g. Balance Proof, in the case of payment channels). The current implementations of ```Cheque``` and ```ChequeParams``` should be part of ```PaymentProcessor``` SWAP implementation:
+The ```Cheque```and ```ChequeParams``` defined in swap/types.go should be more general to allow implementors of the payments API to be able to generated the required data structures for the specific payments implementation (e.g. a Balance Proof, in the case of payment channels). The current implementations of ```Cheque``` and ```ChequeParams``` should be part of ```PaymentProcessor``` SWAP implementation:
 
 ```golang
 // ChequeParams encapsulate all cheque parameters
@@ -101,6 +101,7 @@ type ChequeParams struct {
 }
 
 // Cheque encapsulates the parameters and the signature
+// TODO: There should be a request cheque struct that only gives the Serial
 type Cheque struct {
 	ChequeParams
 	Sig []byte // signature Sign(Keccak256(contract, beneficiary, amount), prvKey)
@@ -115,12 +116,12 @@ map[PaymentProcessorDescriptor][]common.Address
 
 This structure should be revised if at some point enabling nodes to use a combination of payment methods (in a particular order of preference expressed during the handshake), becomes a nice to have feature for Swarm. 
 
-If no indication of supported payment methods is sent, or if there is no match between the payment methods supported by the two nodes then all settlements will be done by using SWAP cheques and the SWAP chequebook smart contract.
+If no indication of supported payment methods is sent, or if there is no match between the payment methods supported by the two nodes then all settlements will be done by using SWAP cheques and the SWAP smart contract.
 
 ## Rationale
 <!--The rationale fleshes out the specification by describing what motivated the design and why particular design decisions were made. It should describe alternate designs that were considered and related work, e.g. how the feature is supported in other languages. The rationale may also provide evidence of consensus within the community, and should discuss important objections or concerns raised during discussion.-->
 
-The current Swap implementation uses Ether to settle debts and requires interactions with the SWAP chequebook smart contract. The settlement process is tightly coupled with the Swarm node, making hard to support other currencies besides Ether or other settlement methods such as payment channels. Moreover, this coupling tights Swarm to Ethereum-like Blockchains, impeding other Blockchain solutions to benefit from the integration of Swarm as a distributed storage solution. Several options were considered to decouple the payments technology to use from Swarm:
+The current Swap implementation uses Ether to settle debts and requires interactions with the SWAP chequebook smart contract. The settlement process is tightly coupled with the Swarm node, making hard to support other currencies besides Ether or other settlement methods such as payment channels. Moreover, this coupling tights Swarm to Ethereum-like Blockchains. Several options were considered to decouple the payments technology to use from Swarm:
 
 * Introduce ERC20 support directly into the SWAP chequebook smart contract: It seems feasible to follow this path, however for each new token to be supported a new chequebook needs to be deployed or multiple token support needs to be introduced to the chequebook. While this is possible, it might introduce unwanted complexity to the SWAP chequebook and not enough flexibility to support other means of payment.
 * Introduce support for payment channels directly into the SWAP chequebook smart contract: This idea requires an additional level of abstraction for the cheques and the chequebook. The SWAP smart contract should be modified to directly interact with different on-chain payment mechanisms. In the case of payment channel networks cheques should be generalized to allow modeling Balance Proof. The interaction between the chequebook and the payment channel network will occur during the on-chain settlement, when the SWAP smart contract should send the Balance Proof to the payement channel smart contract(s) being use. As with the previous approach, this requires several changes to the SWAP chequebook smart contract. For every payment system to be supported a different chequebook should be designed. Having a single chequebook to handle multiple payment systems will result in an smart contract too difficult to maintain and keep secure.
