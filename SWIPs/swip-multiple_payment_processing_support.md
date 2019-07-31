@@ -17,7 +17,7 @@ In the current Swarm design, accounting of the data exchanged between peers and 
 
 ## Abstract
 <!--A short (~200 word) description of the technical issue being addressed.-->
-
+Defining abstractions for payment processing will make easier to integrate different payment methods into Swarm. These abstractions should specify the minimum requirements to allow different implementations to be supported by Swarm, thus decoupling the distributed storage service from the actual payment system used by participants to pay for it. Additionally, a new component needs to be included to keep track of the payment methods available for each peer a node is exchanging data with. The payment method or methods to use should be negotiated when stablishing the connection with such peers. Incorporating this abstractions requires modifications in the handshake protocol, the message handling, and the accounting and payment strategies implemented at the moment.
 
 ## Motivation
 <!--The motivation is critical for SWIPs that want to change the Swarm protocol. It should clearly explain why the existing protocol specification is inadequate to address the problem that the SWIP solves. SWIP submissions without sufficient motivation may be rejected outright.-->
