@@ -1,6 +1,6 @@
 ---
 SWIP: <to be assigned>
-title: Introduce support for multiple payment processing options in Swarm
+title: Introduce support for multiple payment modules in Swarm
 author: Diego Masini (@diegomasini)
 discussions-to: <URL>
 status: Draft
@@ -14,6 +14,10 @@ created: 2019-07-22
 ## Simple Summary
 <!--"If you can't explain it simply, you don't understand it well enough." Provide a simplified and layman-accessible explanation of the SWIP.-->
 In the current Swarm design, accounting of the data exchanged between peers and the payment for such data is coupled. To promote widespread adoption of Swarm it is best to abstract the actual payment mechanism and let nodes participating in the network to decide what payment system better adapts to their needs.
+
+This SWIP proposes to decouple the accounting for services provided via Swarm from the actual handling of the payment. A generic payment module will be defined as an interface for handling the payments; the existing Swap chequebook will be the first implementation of this interface. Doing this will pave the way for enabling other currencies to define their implementation of the payment module, which will increase the resilience of the Swarm network as well as increase the user-base of SWARM. 
+
+To allow multiple payment modules to co-exist on the same network, nodes must be able to come to an agreement on which payment module (or modules) to use. We propose a mechanism for nodes to indicate these preferences during handshake, such preferences should be normalized and weighted. SWAP cheques and the SWAP chequebook using the default honey/money payment oracle will be the default payment option and it will always be available for all Swarm nodes, this ensures payments for the services consumed can always be issued even when nodes cannot agree on payment prefences or none of the prefences have a higher score than the SWAP default option.
 
 ## Abstract
 <!--A short (~200 word) description of the technical issue being addressed.-->
