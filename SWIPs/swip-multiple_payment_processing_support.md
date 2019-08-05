@@ -40,6 +40,36 @@ Making it possible for nodes to set their preference for a payment module will i
 ## Specification
 <!--The technical specification should describe the syntax and semantics of any new feature. The specification should be detailed enough to allow competing, interoperable implementations for the current Swarm platform and future client implementations.-->
 
+At high level a payment module is responsible for:
+
+* Accepting an amount (in honey) and a recipient.
+* Querying the agreed-upon price oracle with the recipient.
+* Sending the recipient a payment.
+* Returning true when the payment was successful.
+* The payment module references a type, version and base currency 
+* The payment module optionally exposes other methods such as querying balances, topping up balances or sending payments (outside of SWARM). 
+
+Nodes can specify their preference for both payment module, as well as price oracle in a list in a configuration file. The preferences are normalized and weighted.
+For any preference list, the chosen option will be the option which has the highest cumulative preference. The preference list has three dimensions, which will be resolved from high to low:
+
+1. Currency to use
+2. Price oracle to use
+3. Payment method to use
+
+Nodes must be able to reach an agreement in any dimension of the preference list, or the fallback option for each dimension of the preference list will be chosen:
+
+| Dimension  | Fallback option |
+| ---------- | --------------- |
+| Currency to use | Wei (Ether)                    |
+| Price oracle    | HonMon oracle <SWIP reference> |
+| Payment method  | Chequebook <SWIP reference>    |
+
+  
+For any payment module where the private key of the standard payment module cannot be used to authorize or receive payments, the payment module implementation should be responsible in making sure that the user manages a valid private key to receive / make payments before they are due. 
+Please refer to the picture below to see how preferences are resolved during the handshake:
+
+![Handshake.png](./../assets/swip-multiple_payment_processing_support/handshake.png)
+
 Swarm defines the ```Balance``` interface  in p2p/protocols/accounting.go as an abstraction for the accounting:
 
 ```golang
