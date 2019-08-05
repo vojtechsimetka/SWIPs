@@ -1,7 +1,7 @@
 ---
 SWIP: <to be assigned>
 title: Introduce support for multiple payment modules in Swarm
-author: Diego Masini (@diegomasini)
+author: Aron Fischer <aron@ethswarm.org>, Rinke Hendriksen <rinke@ethswarm.org>, Vojtech Simetka <vojtech@iovlabs.org>, Diego Masini (dmasini@iovlabs.org)
 discussions-to: <URL>
 status: Draft
 type: Standards Track
