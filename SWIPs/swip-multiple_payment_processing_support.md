@@ -1,8 +1,8 @@
 ---
 SWIP: <to be assigned>
 title: Introduce support for multiple payment modules in Swarm
-author: Aron Fischer <aron@ethswarm.org>, Rinke Hendriksen <rinke@ethswarm.org>, Vojtech Simetka <vojtech@iovlabs.org>, Diego Masini (dmasini@iovlabs.org)
-discussions-to: <URL>
+author: Aron Fischer <aron@ethswarm.org>, Rinke Hendriksen <rinke@ethswarm.org>, Vojtech Simetka <vojtech@iovlabs.org>, Diego Masini <dmasini@iovlabs.org>
+discussions-to: <https://swarmresear.ch/>
 status: Draft
 type: Standards Track
 category: Core
@@ -15,9 +15,9 @@ created: 2019-07-22
 <!--"If you can't explain it simply, you don't understand it well enough." Provide a simplified and layman-accessible explanation of the SWIP.-->
 In the current Swarm design, accounting of the data exchanged between peers and the payment for such data is coupled. To promote widespread adoption of Swarm it is best to abstract the actual payment mechanism and let nodes participating in the network to decide what payment system better adapts to their needs.
 
-This SWIP proposes to decouple the accounting for services provided via Swarm from the actual handling of the payment. A generic payment module will be defined as an interface for handling the payments; the existing Swap chequebook will be the first implementation of this interface. Doing this will pave the way for enabling other currencies to define their implementation of the payment module, which will increase the resilience of the Swarm network (i.e. if one payment module fails, others might still work) while making Swarm attractive to a wider user-base by allowing nodes to pay in their currency of preference.
+This SWIP proposes to decouple the accounting for services provided via Swarm from the actual handling of the payment. A generic payment module will be defined as an interface for handling the payments; the existing SWAP chequebook will be the first implementation of this interface. Doing this will pave the way for enabling other currencies to define their implementation of the payment module, which will increase the resilience of the Swarm network (i.e. if one payment module fails, others might still work) while making Swarm attractive to a wider user-base by allowing nodes to pay in their currency of preference.
 
-To allow multiple payment modules to co-exist on the same network, nodes must be able to come to an agreement on which payment module (or modules) to use. We propose a mechanism for nodes to indicate these preferences during handshake, such preferences should be normalized and weighted. As it is essential for the nodes on the network to be able to always connect even in the case of heterogeneous preferences, there must be a fallback option provided for the payment module. SWAP cheques and the SWAP chequebook will be the default payment option and it will always be available, ensuring that payments for services consumed can always be issued even when nodes cannot agree on payment prefences or none of the prefences have a higher score than the default option. Finally, there should be a mecanism for each node to keep track of the payment methods negotiated with its peers.
+To allow multiple payment modules to co-exist on the same network, nodes must be able to come to an agreement on which payment module (or modules) to use. We propose a mechanism for nodes to indicate these preferences during handshake, such preferences should be normalized and weighted. As it is essential for the nodes on the network to be able to always connect even in the case of heterogeneous preferences, there must be a fallback option provided for the payment module. The fallback option ensures that payments for services consumed can always be issued even when nodes cannot agree on payment prefences or none of the prefences have a higher score than the default option. Finally, there should be a mecanism for each node to keep track the payment methods negotiated with its peers.
 
 ## Abstract
 <!--A short (~200 word) description of the technical issue being addressed.-->
@@ -62,9 +62,8 @@ Nodes must be able to reach an agreement in any dimension of the preference list
 | ---------- | --------------- |
 | Currency to use | Wei (Ether)                    |
 | Price oracle    | HonMon oracle <SWIP reference> |
-| Payment method  | Chequebook <SWIP reference>    |
+| Payment method  | On-chain transaction           |
 
-  
 For any payment module where the private key of the standard payment module cannot be used to authorize or receive payments, the payment module implementation should be responsible in making sure that the user manages a valid private key to receive / make payments before they are due. 
 Please refer to the picture below to see how preferences are resolved during the handshake:
 
@@ -157,8 +156,6 @@ map[PaymentProcessorDescriptor][]common.Address
 
 This structure should be revised if at some point enabling nodes to use a combination of payment methods (in a particular order of preference expressed during the handshake), becomes a nice to have feature for Swarm. 
 
-If no indication of supported payment methods is sent, or if there is no match between the payment methods supported by the two nodes then all settlements will be done by using SWAP cheques and the SWAP chequebook smart contract.
-
 ## Rationale
 <!--The rationale fleshes out the specification by describing what motivated the design and why particular design decisions were made. It should describe alternate designs that were considered and related work, e.g. how the feature is supported in other languages. The rationale may also provide evidence of consensus within the community, and should discuss important objections or concerns raised during discussion.-->
 
@@ -170,7 +167,7 @@ The current Swap implementation uses Ether to settle debts and requires interact
 
 ## Backwards Compatibility
 <!--All SWIPs that introduce backwards incompatibilities must include a section describing these incompatibilities and their severity. The SWIP must explain how the author proposes to deal with these incompatibilities. SWIP submissions without a sufficient backwards compatibility treatise may be rejected outright.-->
-To preserve compatibility SWAP cheques and the SWAP chequebook smart contract will remain as the default payment mechanism that all nodes must at least support. This allows payments between nodes to always be made when no indication of the preferred payment method is sent during the handshake, or when there is no match between the payment methods supported by nodes exchanging data. This SWIP does not introduce any other backward incompatibility if implemented before the incentivized test net goes live. If implemented after this time, further research must be performed to assess possible backward incompatibility and how to deal with it.
+To preserve compatibility SWAP cheques and the SWAP chequebook smart contract will be the first implementation of the payment module interface. This will allow nodes willing to operate with SWAP to indicate so and continue to operate in Swarm as today. This SWIP does not introduce any other backward incompatibility if implemented before the incentivized test net goes live. If implemented after this time, further research must be performed to assess possible backward incompatibility and how to deal with it.
 
 ## Test Cases
 <!--Test cases for an implementation are mandatory for SWIPs that are affecting changes to data and message formats. Other SWIPs can choose to include links to test cases if applicable.-->
